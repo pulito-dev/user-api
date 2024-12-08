@@ -15,6 +15,6 @@ async def get_forward_auth_req(request: Request, response: Response) -> Any:
             print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
         print(f"{k}: {v}")
     print(request.path_params)
-    response.headers["authorization"] = request.headers["authorization"]
+    response.headers["authorization"] = request.headers.get("authorization")
 
     return {}
