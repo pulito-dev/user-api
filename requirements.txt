@@ -5,4 +5,4 @@ sqlmodel
 fastapi[standard]
 pydantic-settings
 auth0-python
-Authlib
+pyjwt
