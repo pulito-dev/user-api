@@ -1,0 +1,8 @@
+celery
+aio-pika
+psycopg2-binary
+sqlmodel
+fastapi[standard]
+pydantic-settings
+auth0-python
+Authlib
