@@ -1,25 +1,27 @@
 from .. import crud
 from ..models import *
-from .deps import get_db
+from .deps import get_session
 from ..rabbit.client import mq_cl
-from sqlmodel import Session, select
+from sqlmodel import select
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.ext.asyncio.session import AsyncSession
 
 user_router = APIRouter()
 
 @user_router.get("/")
-async def get_all_users(session: Session = Depends(get_db)) -> UsersPublic:
+async def get_all_users(session: AsyncSession = Depends(get_session)) -> UsersPublic:
     
     statement = select(User)
-    users = session.exec(statement).all()
+    res = await session.execute(statement)
+    users = res.scalars().all()
     
     return UsersPublic(data=users)
 
 
 @user_router.get("/{id}")
-async def get_user_by_id(id: int, session: Session = Depends(get_db)) -> User:
+async def get_user_by_id(id: int, session: AsyncSession = Depends(get_session)) -> User:
 
-    user = session.get(User, id)
+    user = await session.get(User, id)
 
     if not user:
         raise HTTPException(
@@ -30,8 +32,8 @@ async def get_user_by_id(id: int, session: Session = Depends(get_db)) -> User:
     return user
 
 @user_router.delete("/{id}")
-async def delete_user(id: int, session: Session = Depends(get_db)) -> DeleteUserPublic:
-    user = session.get(User, id)
+async def delete_user(id: int, session: AsyncSession = Depends(get_session)) -> DeleteUserPublic:
+    user = await session.get(User, id)
 
     if not user:
         raise HTTPException(
@@ -39,7 +41,7 @@ async def delete_user(id: int, session: Session = Depends(get_db)) -> DeleteUser
             detail=f"Accommdation with id {id} does not exist"
         )
     
-    crud.delete_user(session, user)
+    await crud.delete_user(session, user)
 
     # # send a msg to listings api to cascade delete
     # await mq_cl.send_message(

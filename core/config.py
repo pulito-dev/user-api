@@ -25,5 +25,15 @@ class Config(BaseSettings):
         default="amqp://guest:guest@mq/"
     )
 
+    # auth0 credentials
+    AUTH0_DOMAIN: str = Field(
+        default="pulito.eu.auth0.com"
+    )
+    AUTH0_CLIENT_ID: str
+    AUTH0_CLIENT_SECRET: str
+    AUTH0_JWKS_URL: str | None = Field(default=None)
+    AUTH0_MGMT_API_URL: str | None = Field(default=None)
+
+
 config = Config()
 print(config.model_dump())

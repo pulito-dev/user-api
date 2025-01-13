@@ -1,6 +1,6 @@
 from typing import Optional
 from .core.config import config
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, SQLModel, Relationship
 
 
 # base model for all models
@@ -12,8 +12,38 @@ class BaseModel(SQLModel):
 # request models
 # todo: add rule to strip and check empty strings https://stackoverflow.com/a/70262769/10513667
 # todo: add a base model for inheriting common fields
+# TODO: add user(1)-role(*) relationship
 
 
+# role
+
+class CreateUpdateRole(BaseModel):
+    name: str
+
+
+class Role(BaseModel, table=True):
+    id: int | None = Field(primary_key=True, default=None)
+    name: str
+
+    # users: list["User"] = Relationship(back_populates="role")
+
+
+class RolesPublic(BaseModel):
+    data: list[Role]
+
+
+class CreateRolePublic(BaseModel):
+    id: int
+    msg: str
+
+
+class UpdateRolePublic(BaseModel):
+    user: Role
+    msg: str
+
+
+class DeleteRolePublic(BaseModel):
+    msg: str
 # user
 
 class CreateUpdateUser(BaseModel):
@@ -33,6 +63,9 @@ class User(BaseModel, table=True):
     email: str = Field(unique=True)
     nickname: str
     picture: str
+    
+    # role_id: int = Field(default=None, foreign_key="user.role.id") #user.role is necessary because of the schema 
+    # role: Role = Relationship(back_populates="users")
 
 
 class UsersPublic(BaseModel):
@@ -45,33 +78,4 @@ class CreateUserPublic(BaseModel):
 
 
 class DeleteUserPublic(BaseModel):
-    msg: str
-
-
-# role
-
-class CreateUpdateRole(BaseModel):
-    name: str
-
-
-class Role(BaseModel, table=True):
-    id: int | None = Field(primary_key=True, default=None)
-    name: str
-
-
-class RolesPublic(BaseModel):
-    data: list[Role]
-
-
-class CreateRolePublic(BaseModel):
-    id: int
-    msg: str
-
-
-class UpdateRolePublic(BaseModel):
-    user: Role
-    msg: str
-
-
-class DeleteRolePublic(BaseModel):
     msg: str
