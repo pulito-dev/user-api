@@ -1,4 +1,5 @@
 from typing import Any
+from auth0 import Auth0Error
 from auth0.management import Auth0
 from auth0.authentication import GetToken
 from auth0.authentication.token_verifier import TokenVerifier, AsymmetricSignatureVerifier
@@ -39,10 +40,10 @@ class AuthClient:
         get_mgmt_api_token = get_token.client_credentials(
             self.mgmt_api_url
         )
-        mgmt_api_token = get_mgmt_api_token.get("access_token")
+        self.mgmt_api_token = get_mgmt_api_token.get("access_token")
 
         # init auth0 client and connect to Management API
-        self.auth0 = Auth0(domain, mgmt_api_token)
+        self.auth0 = Auth0(domain, self.mgmt_api_token)
 
         # init token verifier
         self.sv = AsymmetricSignatureVerifier(self.jwks_url)
@@ -71,7 +72,22 @@ class AuthClient:
 
     
     def get_idp_user(self, idp_id: str) -> dict[str, Any]:
-        return self.auth0.users.get(idp_id)
+        try:
+            return self.auth0.users.get(idp_id)
+        except Auth0Error as e:
+                # refresh management API token
+                get_token = GetToken(
+                    domain=self.domain,
+                    client_id=self.client_id,
+                    client_secret=self.client_secret
+                )
+                get_mgmt_api_token = get_token.client_credentials(
+                    self.mgmt_api_url
+                )
+                self.mgmt_api_token = get_mgmt_api_token.get("access_token")
+
+                # try again
+                return self.auth0.users.get(idp_id)
 
 
 auth_cl = AuthClient()
