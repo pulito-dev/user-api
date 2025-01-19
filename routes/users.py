@@ -1,8 +1,8 @@
 from .. import crud
 from ..models import *
-from .deps import get_session
-from ..rabbit.client import mq_cl
 from sqlmodel import select
+from ..rabbit.client import mq_cl
+from .deps import get_session, get_current_user
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio.session import AsyncSession
 
@@ -32,24 +32,42 @@ async def get_user_by_id(id: int, session: AsyncSession = Depends(get_session)) 
     return user
 
 @user_router.delete("/{id}")
-async def delete_user(id: int, session: AsyncSession = Depends(get_session)) -> DeleteUserPublic:
+async def delete_user(id: int, session: AsyncSession = Depends(get_session), current_user: dict = Depends(get_current_user)) -> DeleteUserPublic:
     user = await session.get(User, id)
 
     if not user:
         raise HTTPException(
             status_code=404,
-            detail=f"Accommdation with id {id} does not exist"
+            detail=f"User with id {id} does not exist"
         )
     
-    await crud.delete_user(session, user)
+    if user.id != current_user.get("id"):
+        print("403")
+        raise HTTPException(
+            status_code=403,
+            detail="You can't delete this profile"
+        )
+    
+    session.begin()
+    try:
+        await crud.delete_user(session, user)
 
-    # # send a msg to listings api to cascade delete
-    # await mq_cl.send_message(
-    #     "listings.cascade_delete",
-    #     {
-    #         "user_id": id
-    #     }
-    # )
+        # send a msg to accommodations api to cascade delete
+        res = await mq_cl.send_rpc_message(
+            "accommodations.cascade_delete",
+            {
+                "user_id": id
+            }
+        )
 
-
-    return DeleteUserPublic(msg="User deleted successfully")
+        if not res.get("success"):
+            raise Exception()
+    except:
+        await session.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=res.get("msg", "Something went wrong")
+        )
+    else:
+        await session.commit()
+        return DeleteUserPublic(msg="User deleted successfully")

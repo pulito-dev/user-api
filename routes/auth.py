@@ -59,8 +59,13 @@ async def get_forward_auth_req(
 
     # if user doesn't exist, insert a new user with provided data
     if user is None:
-        # TODO: insert a new user in the database, along with empty row for personal info
         idp_user = auth_cl.get_idp_user(idp_id)
+
+        # FIXME: hardcoded way of instatiaing admin on login
+        if "sakyyt" in idp_user.get("nickname"):
+            role = await crud.get_role_by_name(session, "ADMIN")
+        else:
+            role = await crud.get_role_by_name(session, "REGULAR")
 
         user_create = CreateUpdateUser(
             idp_id=idp_id,
@@ -68,7 +73,8 @@ async def get_forward_auth_req(
             last_name=idp_user.get("family_name"),
             email=idp_user.get("email"),
             nickname=idp_user.get("nickname"),
-            picture=idp_user.get("picture")
+            picture=idp_user.get("picture"),
+            role_id=role.id
         )
 
         user = await crud.create_user(session, user_create)

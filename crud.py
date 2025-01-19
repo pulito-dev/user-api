@@ -1,21 +1,26 @@
 from .models import *
 from sqlmodel import select
+from sqlalchemy.orm import joinedload
 from sqlalchemy.ext.asyncio.session import AsyncSession
 
 
 # users
-def get_user_by_nickname(session: AsyncSession, nickname: str) -> User | None:
+async def get_user_by_nickname(session: AsyncSession, nickname: str) -> User | None:
     statement = select(User).where(User.nickname == nickname)
-    user = session.exec(statement).first()
+    res = await session.execute(statement)
+
+    user = res.scalars().first()
 
     return user
 
 
 async def get_user_by_idp_id(session: AsyncSession, idp_id: str) -> User | None:
-    statement = select(User).where(User.idp_id == idp_id)
+    # https://medium.com/@vickypalaniappan12/sqlalchemy-missinggreenleterror-656825b3ce13
+    # https://docs.sqlalchemy.org/en/14/orm/loading_relationships.html#sqlalchemy.orm.joinedload
+    statement = select(User, Role).where(User.idp_id == idp_id).join(Role).options(joinedload(User.role))
     res = await session.execute(statement)
 
-    user = res.scalars().first()
+    user = res.scalar()    
 
     return user
 
@@ -33,10 +38,18 @@ async def create_user(session: AsyncSession, user_create: CreateUpdateUser) -> U
 
 async def delete_user(session: AsyncSession, db_user: User):
     await session.delete(db_user)
-    await session.commit()
 
 
 # roles
+async def get_role_by_name(session: AsyncSession, role_name: str) -> Role | None:
+    statement = select(Role).where(Role.name == role_name)
+    res = await session.execute(statement)
+
+    role = res.scalars().first()
+
+    return role
+
+
 async def create_role(session: AsyncSession, role_create: CreateUpdateRole):
     role = Role.model_validate(
         role_create

@@ -6,6 +6,7 @@ from .rabbit.client import mq_cl
 from .auth.client import auth_cl
 from contextlib import asynccontextmanager
 from .rabbit.handlers.test import test_handler
+from .rabbit.handlers.get_user import get_user_handler
 
 
 @asynccontextmanager
@@ -13,7 +14,8 @@ async def lifespan(_: FastAPI):
     # everything before yield is executed before the app starts up
     # set up rabbit
     await mq_cl.connect(str(config.RABBIT_URI))
-    await mq_cl.consume("users", test_handler)
+    await mq_cl.setup_rpc_queues()
+    await mq_cl.consume("users.get_by_id.req", get_user_handler)
 
     # set up db
     db_cl.connect(str(config.DB_URI))

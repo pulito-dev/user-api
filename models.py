@@ -1,4 +1,3 @@
-from typing import Optional
 from .core.config import config
 from sqlmodel import Field, SQLModel, Relationship
 
@@ -25,7 +24,7 @@ class Role(BaseModel, table=True):
     id: int | None = Field(primary_key=True, default=None)
     name: str
 
-    # users: list["User"] = Relationship(back_populates="role")
+    users: list["User"] = Relationship(back_populates="role")
 
 
 class RolesPublic(BaseModel):
@@ -53,6 +52,7 @@ class CreateUpdateUser(BaseModel):
     email: str = Field(unique=True)
     nickname: str
     picture: str
+    role_id: int
 
 
 class User(BaseModel, table=True):
@@ -64,8 +64,11 @@ class User(BaseModel, table=True):
     nickname: str
     picture: str
     
-    # role_id: int = Field(default=None, foreign_key="user.role.id") #user.role is necessary because of the schema 
-    # role: Role = Relationship(back_populates="users")
+    role_id: int = Field(default=None, foreign_key="user.role.id") #user.role is necessary because of the schema 
+    role: Role = Relationship(back_populates="users")
+
+    class Config:
+        from_attributes = True
 
 
 class UsersPublic(BaseModel):
