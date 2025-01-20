@@ -3,8 +3,8 @@ from ..models import *
 from sqlmodel import select
 from ..rabbit.client import mq_cl
 from .deps import get_session, get_current_user
-from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio.session import AsyncSession
+from fastapi import APIRouter, Depends, HTTPException, Header
 
 user_router = APIRouter()
 
@@ -16,6 +16,25 @@ async def get_all_users(session: AsyncSession = Depends(get_session)) -> UsersPu
     users = res.scalars().all()
     
     return UsersPublic(data=users)
+
+@user_router.get("/me")
+async def get_me(session: AsyncSession = Depends(get_session), x_forwarded_user: int = Header()) -> User:
+    user = await session.get(User, x_forwarded_user)
+
+    return user
+
+
+@user_router.get("/{idp_id}")
+async def get_user_by_idp_id(idp_id: str, session = Depends(get_session)):
+    user = await crud.get_user_by_idp_id(session, idp_id)
+
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="No user found with corresponding id"
+        )
+
+    return user
 
 
 @user_router.get("/{id}")
