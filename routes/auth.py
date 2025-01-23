@@ -1,4 +1,6 @@
 import re
+import boto3
+import json
 from .. import crud
 from typing import Any
 from ..models import *
@@ -78,6 +80,13 @@ async def get_forward_auth_req(
         )
 
         user = await crud.create_user(session, user_create)
+
+        # invoke a lambda function for creating dummy accommodations
+        lambda_client = boto3.client("lambda")
+        lambda_client.invoke_async(
+            FunctionName="importAccommodations",
+            InvokeArgs=json.dumps({"user_id": user.id}).encode()
+        )
     
     # set headers for other services to identify a user
     response.headers["x-forwarded-user"] = str(user.id)
